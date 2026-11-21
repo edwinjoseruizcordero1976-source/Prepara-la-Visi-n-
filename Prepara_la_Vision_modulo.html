@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script id="p360-persist-layer">(function(){if(window.__p360Layer)return;window.__p360Layer=true;
+var LS;try{LS=window.localStorage}catch(e){return}
+var SP=Storage.prototype,oSet=SP.setItem,oRem=SP.removeItem,oClr=SP.clear,oGet=SP.getItem;
+var TRACK=/^(?!p360_del_until$|p360_ls_saved_at$)/;
+var TRANS={'prepara360_ultima_validacion':1,'prepara360_usuario_actual':1,'prepara360_quiz_registro_actual':1,'prepara360_quiz_ultima_respuesta':1,'PREPARA360_FAB_COLAPSADO':1,'PREPARA360_VIDEO_LIBRARY_READY':1,'PREPARA360_VIDEO_LIBRARY_ORIGIN':1,'PREPARA360_VIDEO_STORAGE_PERSIST_V1':1,'p360_del_until':1,'p360_ls_saved_at':1,'p360_left_bars_hidden':1};
+function tracked(k){return TRACK.test(k)&&!TRANS[k]}window.__p360Tracked=tracked;
+function sha256(ascii){function r(v,a){return(v>>>a)|(v<<(32-a))}var m=Math.pow,mp=m(2,32),i,j,res='',words=[],bl=ascii.length*8,hash=[],k=[],pc=0,isC={};
+for(var c=2;pc<64;c++){if(!isC[c]){for(i=0;i<313;i+=c)isC[i]=c;hash[pc]=(m(c,.5)*mp)|0;k[pc++]=(m(c,1/3)*mp)|0}}
+hash=hash.slice(0,8);ascii+='\x80';while(ascii.length%64-56)ascii+='\x00';
+for(i=0;i<ascii.length;i++){j=ascii.charCodeAt(i);words[i>>2]|=j<<((3-i)%4)*8}
+words[words.length]=((bl/mp)|0);words[words.length]=bl;
+for(j=0;j<words.length;){var w=words.slice(j,j+=16),oh=hash;hash=hash.slice(0,8);
+for(i=0;i<64;i++){var w15=w[i-15],w2=w[i-2],a=hash[0],e=hash[4];
+var t1=hash[7]+(r(e,6)^r(e,11)^r(e,25))+((e&hash[5])^((~e)&hash[6]))+k[i]+(w[i]=(i<16)?w[i]:(w[i-16]+(r(w15,7)^r(w15,18)^(w15>>>3))+w[i-7]+(r(w2,17)^r(w2,19)^(w2>>>10)))|0);
+var t2=(r(a,2)^r(a,13)^r(a,22))+((a&hash[1])^(a&hash[2])^(hash[1]&hash[2]));
+hash=[(t1+t2)|0].concat(hash);hash[4]=(hash[4]+t1)|0}
+for(i=0;i<8;i++)hash[i]=(hash[i]+oh[i])|0}
+for(i=0;i<8;i++)for(j=3;j+1;j--){var b=(hash[i]>>(j*8))&255;res+=((b<16)?0:'')+b.toString(16)}return res}
+function hp(p){return sha256(unescape(encodeURIComponent('p360|'+p)))}
+function auth(motivo){try{oSet.call(LS,'p360_del_until',String(Date.now()+8000))}catch(e){}return true;try{if(Date.now()<parseInt(oGet.call(LS,'p360_del_until')||'0',10))return true}catch(e){}
+var h=oGet.call(LS,'p360_admin_pin_sha256'),p;
+if(!h){p=prompt('Se requiere PIN de administrador para '+motivo+'. Cree uno (mínimo 6 caracteres):');
+if(!p||p.length<6)return false;if(prompt('Confirme el PIN:')!==p){alert('Los PIN no coinciden.');return false}
+oSet.call(LS,'p360_admin_pin_sha256',hp(p));mput('p360_admin_pin_sha256',hp(p))}
+else{p=prompt('PIN de administrador requerido para '+motivo+':');if(!p)return false;if(hp(p)!==h){alert('PIN incorrecto.');return false}}
+oSet.call(LS,'p360_del_until',String(Date.now()+8000));return true}
+window.__p360Auth=auth;var P=null;function db(){return P||(P=new Promise(function(res,rej){try{var q=indexedDB.open('PREPARA360_PERSIST',1);q.onupgradeneeded=function(){q.result.createObjectStore('kv',{keyPath:'key'})};q.onsuccess=function(){res(q.result)};q.onerror=function(){rej()}}catch(e){rej()}}))}
+function mput(k,v){db().then(function(d){d.transaction('kv','readwrite').objectStore('kv').put({key:k,value:v,at:Date.now()})}).catch(function(){})}
+function mdel(k){db().then(function(d){var s=d.transaction('kv','readwrite').objectStore('kv');k?s.delete(k):s.clear()}).catch(function(){})}
+function shrinks(k,nv){var ov=oGet.call(LS,k);if(ov==null)return false;try{var a=JSON.parse(ov),b=JSON.parse(nv);return Array.isArray(a)&&Array.isArray(b)&&b.length<a.length}catch(e){return false}}
+var warned=0;function warn(){if(Date.now()-warned>4000){warned=Date.now();alert('Acción bloqueada: eliminar o reducir información guardada requiere el PIN de administrador. Los datos se conservaron.')}}
+SP.setItem=function(k,v){if(this===LS&&tracked(k)){if(shrinks(k,v)&&!auth('eliminar registros guardados')){warn();return}oSet.call(this,k,v);mput(k,String(v));try{oSet.call(LS,'p360_ls_saved_at',String(Date.now()))}catch(e){}return}return oSet.call(this,k,v)};
+SP.removeItem=function(k){if(this===LS&&tracked(k)){if(!auth('eliminar información guardada')){warn();return}oRem.call(this,k);mdel(k);return}return oRem.call(this,k)};
+SP.clear=function(){if(this===LS){if(!auth('borrar todos los datos guardados')){warn();return}oClr.call(this);mdel();return}return oClr.call(this)};
+var el=document.getElementById('p360-all-snapshot');if(!el)return;
+var snap=null;try{snap=JSON.parse(el.textContent)}catch(e){}
+if(snap&&snap.kv){var at=parseInt(oGet.call(LS,'p360_ls_saved_at')||'0',10),force=(snap.savedAt||0)>at;
+for(var k in snap.kv){if(force||oGet.call(LS,k)===null){oSet.call(LS,k,snap.kv[k]);mput(k,snap.kv[k])}}
+if(force)oSet.call(LS,'p360_ls_saved_at',String(snap.savedAt))}
+db().then(function(d){return new Promise(function(r){var q=d.transaction('kv').objectStore('kv').getAll();q.onsuccess=function(){r(q.result||[])};q.onerror=function(){r([])}})}).then(function(all){var n=0;
+all.forEach(function(x){if(oGet.call(LS,x.key)===null){oSet.call(LS,x.key,x.value);n++}});
+if(n&&!sessionStorage.getItem('p360_restored')){sessionStorage.setItem('p360_restored','1');location.reload()}}).catch(function(){});
+})();
+</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PREPARA LA VISIÓN &bull; Plataforma Interactiva Regional 15</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome para Iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js para Gráficos Dinámicos de Barras y Pastel -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .submenu-collapse { transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out; max-height: 0; opacity: 0; overflow: hidden; }
+        .submenu-collapse.open { max-height: 600px; opacity: 1; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased h-screen flex overflow-hidden">
+
+    <!-- BARRA LATERAL (COLORES INSTITUCIONALES: AZUL, BLANCO Y ROJO) -->
+    <aside class="w-80 bg-blue-950 text-blue-100 flex flex-col justify-between hidden md:flex border-r border-red-700/50 shadow-2xl z-20">
+        <div class="flex flex-col h-full overflow-hidden">
+            <!-- Cabecera Institucional -->
+            <div class="p-5 border-b border-blue-900 flex items-center space-x-3 flex-shrink-0 bg-blue-900/40">
+                <div class="w-12 h-12 rounded-2xl bg-red-600 flex items-center justify-center text-white font-bold text-xl shadow-lg border border-white/20">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <div class="overflow-hidden">
+                    <h1 class="font-bold text-white text-base tracking-tight truncate">PREPARA LA VISIÓN</h1>
+                    <span class="text-xs text-red-300 font-semibold">Regional 15 &bull; Subsistema EPJA</span>
+                </div>
+            </div>
+
+            <!-- Menú de Navegación -->
+            <nav class="flex-1 p-4 space-y-2.5 overflow-y-auto custom-scrollbar text-sm font-medium">
+                <!-- Dashboard -->
+                <button onclick="switchModule('dashboard')" data-module="dashboard" class="mod-btn w-full flex items-center space-x-3.5 px-4 py-3.5 rounded-2xl font-bold text-white bg-blue-700 shadow-md transition-all text-left">
+                    <i class="fa-solid fa-chart-pie w-5 text-center text-base"></i>
+                    <span>Dashboard Ejecutivo en Vivo</span>
+                </button>
+
+                <!-- 1. PREPARA DATA -->
+                <div>
+                    <button onclick="toggleMenu('menu_data')" class="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl font-bold text-blue-100 hover:bg-blue-900/60 hover:text-white transition-all text-left text-sm">
+                        <div class="flex items-center space-x-3.5">
+                            <i class="fa-solid fa-database w-5 text-center text-blue-400 text-base"></i>
+                            <span>1. Prepara Data</span>
+                        </div>
+                        <i id="icon_menu_data" class="fa-solid fa-chevron-down text-xs transition-transform"></i>
+                    </button>
+                    <div id="menu_data" class="submenu-collapse pl-6 space-y-1.5 pt-2">
+                        <button onclick="switchModule('centros_docentes')" data-module="centros_docentes" class="mod-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-blue-200 hover:bg-blue-900/40 hover:text-white transition text-left text-xs">
+                            <i class="fa-solid fa-circle text-[6px] text-red-500"></i><span>Centros, Docentes y Títulos</span>
+                        </button>
+                        <button onclick="switchModule('personal_apoyo')" data-module="personal_apoyo" class="mod-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-blue-200 hover:bg-blue-900/40 hover:text-white transition text-left text-xs">
+                            <i class="fa-solid fa-circle text-[6px] text-red-500"></i><span>Personal de Apoyo y Admin.</span>
+                        </button>
+                        <button onclick="switchModule('eficiencia')" data-module="eficiencia" class="mod-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-blue-200 hover:bg-blue-900/40 hover:text-white transition text-left text-xs">
+                            <i class="fa-solid fa-circle text-[6px] text-red-500"></i><span>Eficiencia Interna</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. PREPARA CONECTA -->
+                <div>
+                    <button onclick="toggleMenu('menu_connect')" class="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl font-bold text-blue-100 hover:bg-blue-900/60 hover:text-white transition-all text-left text-sm">
+                        <div class="flex items-center space-x-3.5">
+                            <i class="fa-solid fa-comments w-5 text-center text-cyan-400 text-base"></i>
+                            <span>2. Prepara Conecta</span>
+                        </div>
+                        <i id="icon_menu_connect" class="fa-solid fa-chevron-down text-xs transition-transform"></i>
+                    </button>
+                    <div id="menu_connect" class="submenu-collapse pl-6 space-y-1.5 pt-2">
+                        <button onclick="switchModule('connect_canales')" data-module="connect_canales" class="mod-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-blue-200 hover:bg-blue-900/40 hover:text-white transition text-left text-xs">
+                            <i class="fa-solid fa-circle text-[6px] text-cyan-400"></i><span>Cuentas y Canales Oficiales</span>
+                        </button>
+                        <button onclick="switchModule('informes')" data-module="informes" class="mod-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-blue-200 hover:bg-blue-900/40 hover:text-white transition text-left text-xs">
+                            <i class="fa-solid fa-circle text-[6px] text-cyan-400"></i><span>Envío y Subida de Informes</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3. PREPARA LABORATORIO -->
+                <div>
+                    <button onclick="toggleMenu('menu_lab')" class="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl font-bold text-blue-100 hover:bg-blue-900/60 hover:text-white transition-all text-left text-sm">
+                        <div class="flex items-center space-x-3.5">
+                            <i class="fa-solid fa-flask w-5 text-center text-amber-400 text-base"></i>
+                            <span>3. Prepara Laboratorio</span>
+                        </div>
+                        <i id="icon_menu_lab" class="fa-solid fa-chevron-down text-xs transition-transform"></i>
+                    </button>
+                    <div id="menu_lab" class="submenu-collapse pl-6 space-y-1.5 pt-2">
+                        <button onclick="switchModule('lab_docentes')" data-module="lab_docentes" class="mod-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-blue-200 hover:bg-blue-900/40 hover:text-white transition text-left text-xs">
+                            <i class="fa-solid fa-circle text-[6px] text-amber-400"></i><span>Planificación y Registros</span>
+                        </button>
+                        <button onclick="switchModule('evaluaciones')" data-module="evaluaciones" class="mod-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-blue-200 hover:bg-blue-900/40 hover:text-white transition text-left text-xs">
+                            <i class="fa-solid fa-circle text-[6px] text-amber-400"></i><span>Instrumento y Acuerdos</span>
+                        </button>
+                        <button onclick="switchModule('evidencias')" data-module="evidencias" class="mod-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-blue-200 hover:bg-blue-900/40 hover:text-white transition text-left text-xs">
+                            <i class="fa-solid fa-circle text-[6px] text-amber-400"></i><span>Buenas Prácticas y Evidencias</span>
+                        </button>
+                    </div>
+                </div>
+            </nav>
+        </div>
+
+        <!-- Perfil -->
+        <div class="p-4 border-t border-blue-900 bg-blue-950/90 flex-shrink-0">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full bg-red-600 border border-white/20 flex items-center justify-center font-bold text-white text-sm">
+                    ER
+                </div>
+                <div class="overflow-hidden">
+                    <h4 class="font-bold text-white text-xs truncate">Edwin José Ruiz Cordero</h4>
+                    <p class="text-[11px] text-red-300 truncate">Técnico Regional EPJA</p>
+                    <span class="inline-block mt-0.5 px-2 py-0.5 rounded bg-blue-900 text-blue-200 text-[10px] font-medium border border-blue-700">Regional 15</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <header class="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 z-10 shadow-xs flex-shrink-0">
+            <div class="flex items-center space-x-3">
+                <h2 id="topbar-title" class="font-bold text-blue-950 text-base">Dashboard Ejecutivo en Vivo</h2>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button id="cloudBadge" onclick="openCloud()" class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold border"></button>
+            </div>
+        </header>
+
+        <main id="main-viewport" class="flex-1 overflow-y-auto p-6 bg-slate-100 custom-scrollbar">
+            <!-- Inyección dinámica -->
+        </main>
+    </div>
+
+    <!-- MODAL DE GUÍA PARA ADJUNTAR (SIN DESCARGAS) -->
+    <div id="attachmentModal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div class="flex items-center space-x-3 text-cyan-700">
+                <div class="w-12 h-12 rounded-2xl bg-cyan-100 flex items-center justify-center text-xl font-bold">
+                    <i class="fa-solid fa-paperclip"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-blue-950 text-base">¡Bandeja Lista para Enviar!</h3>
+                    <p class="text-xs text-slate-500">El archivo ya está en tu computadora, solo adjúntalo con un clic</p>
+                </div>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2 text-xs text-slate-700">
+                <p class="font-semibold text-blue-950"><i class="fa-solid fa-circle-1 text-cyan-600 mr-1"></i> Archivo seleccionado: <span id="modalFileName" class="text-cyan-700 font-bold underline">documento.pdf</span> (Ya disponible en tu PC).</p>
+                <p class="font-semibold text-blue-950"><i class="fa-solid fa-circle-2 text-cyan-600 mr-1"></i> Se abrirá tu plataforma (<span id="modalPlatform" class="font-bold text-blue-800">Gmail / Outlook</span>). Haz clic en el icono del **clip (Adjuntar)** y busca tu documento en la computadora para enviarlo.</p>
+            </div>
+            <div class="flex space-x-3 pt-2">
+                <button onclick="proceedToEmail()" class="flex-1 bg-cyan-700 hover:bg-cyan-800 text-white font-semibold py-3 rounded-xl text-xs transition shadow-md">
+                    Entendido, Abrir Correo Ahora
+                </button>
+                <button onclick="closeModal()" class="px-4 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-3 rounded-xl text-xs transition">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+<div id="cloudModal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
+<div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-3 max-h-[92vh] overflow-y-auto">
+<h3 class="font-bold text-blue-950 text-base"><i class="fa-solid fa-cloud text-cyan-600 mr-2"></i>Almacenamiento en la nube (Supabase)</h3>
+<ol class="text-xs text-slate-600 list-decimal pl-5 space-y-1">
+<li>Crea una cuenta gratis en <b>supabase.com</b> y un proyecto nuevo.</li>
+<li>Entra a <b>SQL Editor</b>, pega el script de abajo y pulsa <b>Run</b>.</li>
+<li>En <b>Project Settings → API</b> copia el <b>Project URL</b> y la clave <b>anon public</b> y pégalas aquí.</li></ol>
+<textarea id="cl_sql" readonly rows="6" class="w-full text-[11px] font-mono border border-slate-300 rounded-xl p-2 bg-slate-50"></textarea>
+<button onclick="navigator.clipboard.writeText(document.getElementById('cl_sql').value);toast('Script copiado')" class="text-xs font-semibold text-blue-700"><i class="fa-solid fa-copy mr-1"></i>Copiar script</button>
+<input id="cl_url" placeholder="Project URL (https://xxxx.supabase.co)" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2">
+<input id="cl_key" placeholder="Clave anon public" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2">
+<input id="cl_bucket" placeholder="Nombre del bucket (evidencias)" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2">
+<div class="grid grid-cols-2 gap-2 text-xs font-semibold">
+<button onclick="saveCloud()" class="col-span-2 bg-cyan-700 hover:bg-cyan-800 text-white py-2.5 rounded-xl">Guardar y conectar</button>
+<button onclick="cloudAll()" class="bg-blue-900 text-white py-2 rounded-xl">Subir todo ahora</button>
+<button onclick="cloudPull(true)" class="bg-amber-600 text-white py-2 rounded-xl">Traer de la nube</button>
+<button onclick="exportJSON()" class="bg-slate-200 py-2 rounded-xl">Descargar respaldo (.json)</button>
+<button onclick="discCloud()" class="bg-red-100 text-red-700 py-2 rounded-xl">Desconectar</button>
+<button onclick="document.getElementById('cloudModal').classList.add('hidden')" class="col-span-2 bg-slate-100 py-2 rounded-xl">Cerrar</button></div>
+<p class="text-[11px] text-slate-500">Cada registro se sube solo al guardar, editar o eliminar. Los archivos quedan en el bucket y también en este equipo.</p>
+</div></div>
+<div id="toastBox" class="fixed bottom-5 right-5 z-[60] hidden bg-blue-950 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-xl"></div>
+
+    <!-- SCRIPT DE INTERACTIVIDAD Y DATOS -->
+    <script>
+        const defaultData = {
+            centros_docentes: [],
+            personal_apoyo: [],
+            eficiencia: [],
+            informes: [],
+            lab_docentes: [],
+            evaluaciones: [],
+            evidencias: []
+        };
+
+        let appData = JSON.parse(localStorage.getItem('prepara_vision_v3')) || defaultData;
+        let editing = null, curMod = 'dashboard';
+        let pendingEmailAction = null;
+        let pendingFileName = '';
+
+        function saveData() {
+            localStorage.setItem('prepara_vision_v3', JSON.stringify(appData));
+            localStorage.setItem('pv_local_at', new Date().toISOString());
+            cloudPushSoon();
+        }
+
+        function toggleMenu(menuId) {
+            const menu = document.getElementById(menuId);
+            const icon = document.getElementById('icon_' + menuId);
+            menu.classList.toggle('open');
+            icon.style.transform = menu.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+
+        const views = {
+            'dashboard': () => {
+                const totalMatricula = appData.centros_docentes.reduce((acc, curr) => acc + Number(curr.matricula), 0);
+                const totalPromovidos = appData.eficiencia.reduce((acc, curr) => acc + Number(curr.promovidos), 0);
+                const totalRepitientes = appData.eficiencia.reduce((acc, curr) => acc + Number(curr.repitientes), 0);
+                const totalAbandonos = appData.eficiencia.reduce((acc, curr) => acc + Number(curr.abandonos), 0);
+
+                setTimeout(() => {
+                    const ctxBar = document.getElementById('barChart');
+                    const ctxPie = document.getElementById('pieChart');
+
+                    if (ctxBar) {
+                        new Chart(ctxBar, {
+                            type: 'bar',
+                            data: {
+                                labels: ['Promovidos', 'Repitientes', 'Abandonos'],
+                                datasets: [{
+                                    label: 'Estudiantes',
+                                    data: [totalPromovidos, totalRepitientes, totalAbandonos],
+                                    backgroundColor: ['#16a34a', '#d97706', '#dc2626'],
+                                    borderRadius: 8
+                                }]
+                            },
+                            options: { responsive: true, maintainAspectRatio: false }
+                        });
+                    }
+
+                    if (ctxPie) {
+                        new Chart(ctxPie, {
+                            type: 'pie',
+                            data: {
+                                labels: ['Promovidos', 'Repitientes', 'Abandonos'],
+                                datasets: [{
+                                    data: [totalPromovidos || 1, totalRepitientes || 1, totalAbandonos || 1],
+                                    backgroundColor: ['#16a34a', '#d97706', '#dc2626']
+                                }]
+                            },
+                            options: { responsive: true, maintainAspectRatio: false }
+                        });
+                    }
+                }, 100);
+
+                return `
+                    <div class="space-y-6 max-w-6xl mx-auto">
+                        <div class="bg-gradient-to-r from-blue-950 via-blue-900 to-red-900 rounded-3xl p-8 text-white shadow-xl border border-red-500/30">
+                            <span class="bg-red-600/30 border border-red-400/40 text-red-200 text-xs font-semibold px-3.5 py-1.5 rounded-full inline-block mb-3">Prepara la Visión &bull; Regional 15</span>
+                            <h3 class="text-3xl font-bold tracking-tight mb-2">Panel Ejecutivo Dinámico</h3>
+                            <p class="text-blue-100 text-sm leading-relaxed max-w-3xl">Visualización en tiempo real de la matrícula, eficiencia interna y rendimiento del subsistema EPJA.</p>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <div class="bg-white p-6 rounded-2xl shadow-xs border border-blue-200">
+                                <div class="text-xs font-bold text-slate-400 uppercase mb-1">Matrícula Total</div>
+                                <div class="text-3xl font-extrabold text-blue-950">${totalMatricula}</div>
+                            </div>
+                            <div class="bg-white p-6 rounded-2xl shadow-xs border border-emerald-200">
+                                <div class="text-xs font-bold text-slate-400 uppercase mb-1">Total Promovido</div>
+                                <div class="text-3xl font-extrabold text-emerald-600">${totalPromovidos}</div>
+                            </div>
+                            <div class="bg-white p-6 rounded-2xl shadow-xs border border-amber-200">
+                                <div class="text-xs font-bold text-slate-400 uppercase mb-1">Total Repitiente</div>
+                                <div class="text-3xl font-extrabold text-amber-600">${totalRepitientes}</div>
+                            </div>
+                            <div class="bg-white p-6 rounded-2xl shadow-xs border border-red-200">
+                                <div class="text-xs font-bold text-slate-400 uppercase mb-1">Total Abandono</div>
+                                <div class="text-3xl font-extrabold text-red-600">${totalAbandonos}</div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200 h-80 flex flex-col">
+                                <h4 class="font-bold text-blue-950 text-sm mb-4"><i class="fa-solid fa-chart-bar text-blue-600 mr-2"></i> Gráfico de Barras - Eficiencia Interna</h4>
+                                <div class="flex-1 relative"><canvas id="barChart"></canvas></div>
+                            </div>
+                            <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200 h-80 flex flex-col">
+                                <h4 class="font-bold text-blue-950 text-sm mb-4"><i class="fa-solid fa-chart-pie text-red-600 mr-2"></i> Gráfico de Pastel - Distribución</h4>
+                                <div class="flex-1 relative"><canvas id="pieChart"></canvas></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            },
+
+            'centros_docentes': () => `
+                <div class="space-y-6 max-w-6xl mx-auto">
+                    <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200">
+                        <h3 class="text-lg font-bold text-blue-950 mb-4 flex items-center gap-2"><i class="fa-solid fa-id-card text-red-600"></i> Registro de Centros, Docentes y Títulos</h3>
+                        <form onsubmit="addItem(event, 'centros_docentes')" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Nombre del Centro</label><input type="text" id="f_centro" required placeholder="Ej. Centro Progreso" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 outline-none"></div>
+                            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Sección</label><input type="text" id="f_seccion" required placeholder="Ej. 2do B" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 outline-none"></div>
+                            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Matrícula de Estudiantes</label><input type="number" id="f_matricula" required placeholder="Ej. 28" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 outline-none"></div>
+                            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Cantidad de Docentes</label><input type="number" id="f_cant_docentes" required placeholder="Ej. 5" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 outline-none"></div>
+                            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Nombre del Docente</label><input type="text" id="f_docente" required placeholder="Nombre completo" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 outline-none"></div>
+                            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Nivel o Área</label><input type="text" id="f_nivel" required placeholder="Ej. Ciencias Sociales" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 outline-none"></div>
+                            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Estatus</label><input type="text" id="f_estatus" required placeholder="Ej. Titular" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 outline-none"></div>
+                            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Título (Licenciado en...)</label><input type="text" id="f_titulo" required placeholder="Ej. Lic. en Educación" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 outline-none"></div>
+                            <div class="md:col-span-full"><button type="submit" class="w-full bg-blue-900 hover:bg-blue-950 text-white text-xs font-semibold py-2.5 rounded-xl transition">Registrar y Actualizar Dashboard</button></div>
+                        </form>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+                        <div class="p-4 bg-slate-50 border-b border-slate-200 font-bold text-sm text-blue-950">Listado Registrado</div>
+                        <table class="w-full text-left text-xs">
+                            <thead><tr class="bg-blue-950 text-white uppercase"><th class="p-3">Centro</th><th class="p-3">Sección</th><th class="p-3">Matrícula</th><th class="p-3">Docentes</th><th class="p-3">Docente</th><th class="p-3">Área</th><th class="p-3">Título Universitario</th><th class="p-3 text-center">Acción</th></tr></thead>
+                            <tbody class="divide-y divide-slate-100">
+                                ${appData.centros_docentes.map(i => `
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="p-3 font-semibold">${i.centro}</td>
+                                        <td class="p-3">${i.seccion}</td>
+                                        <td class="p-3">${i.matricula}</td>
+                                        <td class="p-3">${i.cant_docentes}</td>
+                                        <td class="p-3">${i.docente}</td>
+                                        <td class="p-3">${i.nivel}</td>
+                                        <td class="p-3 text-blue-700 font-medium">${i.titulo}</td>
+                                        <td class="p-3 text-center"><button onclick="editItem('centros_docentes', ${i.id})" class="text-blue-600 hover:text-blue-800 mr-3" title="Editar"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="deleteItem('centros_docentes', ${i.id})" class="text-red-600 hover:text-red-800"><i class="fa-solid fa-trash"></i></button></td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `,
+
+            'personal_apoyo': () => `
+                <div class="space-y-6 max-w-5xl mx-auto">
+                    <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200">
+                        <h3 class="text-lg font-bold text-blue-950 mb-4 flex items-center gap-2"><i class="fa-solid fa-users-gear text-red-600"></i> Registro de Personal de Apoyo y Administrativo</h3>
+                        <form onsubmit="addItem(event, 'personal_apoyo')" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Centro Educativo</label><input type="text" id="f_centro" required placeholder="Centro" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 outline-none"></div>
+                            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Nombre Completo</label><input type="text" id="f_nombre" required placeholder="Nombre" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 outline-none"></div>
+                            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Función / Cargo</label><input type="text" id="f_funcion" required placeholder="Ej. Secretario / Orientador / Conserje" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 outline-none"></div>
+                            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Estatus</label><input type="text" id="f_estatus" required placeholder="Ej. Fijo / Contratado" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 outline-none"></div>
+                            <div class="md:col-span-full"><button type="submit" class="w-full bg-blue-900 hover:bg-blue-950 text-white text-xs font-semibold py-2.5 rounded-xl transition">Guardar Personal de Apoyo</button></div>
+                        </form>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+                        <div class="p-4 bg-slate-50 border-b border-slate-200 font-bold text-sm text-blue-950">Personal Registrado</div>
+                        <table class="w-full text-left text-sm">
+                            <thead><tr class="bg-blue-950 text-white uppercase text-xs"><th class="p-4">Centro</th><th class="p-4">Nombre</th><th class="p-4">Función</th><th class="p-4">Estatus</th><th class="p-4 text-center">Acción</th></tr></thead>
+                            <tbody class="divide-y divide-slate-100">
+                                ${appData.personal_apoyo.map(i => `
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="p-4 font-semibold">${i.centro}</td>
+                                        <td class="p-4">${i.nombre}</td>
+                                        <td class="p-4 text-blue-700 font-medium">${i.funcion}</td>
+                                        <td class="p-4">${i.estatus}</td>
+                                        <td class="p-4 text-center"><button onclick="editItem('personal_apoyo', ${i.id})" class="text-blue-600 hover:text-blue-800 mr-3" title="Editar"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="deleteItem('personal_apoyo', ${i.id})" class="text-red-600 hover:text-red-800"><i class="fa-solid fa-trash"></i></button></td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `,
+
+            'eficiencia': () => `
+                <div class="space-y-6 max-w-5xl mx-auto">
+                    <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200">
+                        <h3 class="text-lg font-bold text-blue-950 mb-4 flex items-center gap-2"><i class="fa-solid fa-chart-line text-red-600"></i> Eficiencia Interna de Estudiantes</h3>
+                        <form onsubmit="addItem(event, 'eficiencia')" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Centro Educativo</label><input type="text" id="f_centro" required placeholder="Centro" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 outline-none"></div>
+                            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Promovidos</label><input type="number" id="f_promovidos" required placeholder="Cant." class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 outline-none"></div>
+                            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Repitientes</label><input type="number" id="f_repitientes" required placeholder="Cant." class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 outline-none"></div>
+                            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Abandonos</label><input type="number" id="f_abandonos" required placeholder="Cant." class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 outline-none"></div>
+                            <div class="md:col-span-full"><button type="submit" class="w-full bg-blue-900 hover:bg-blue-950 text-white text-xs font-semibold py-2.5 rounded-xl transition">Guardar Eficiencia y Actualizar Dashboard</button></div>
+                        </form>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+                        <div class="p-4 bg-slate-50 border-b border-slate-200 font-bold text-sm text-blue-950">Registros de Eficiencia</div>
+                        <table class="w-full text-left text-sm">
+                            <thead><tr class="bg-blue-950 text-white uppercase text-xs"><th class="p-4">Centro</th><th class="p-4 text-emerald-400">Promovidos</th><th class="p-4 text-amber-400">Repitientes</th><th class="p-4 text-red-400">Abandonos</th><th class="p-4 text-center">Acción</th></tr></thead>
+                            <tbody class="divide-y divide-slate-100">
+                                ${appData.eficiencia.map(i => `
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="p-4 font-semibold">${i.centro}</td>
+                                        <td class="p-4 font-bold text-emerald-600">${i.promovidos}</td>
+                                        <td class="p-4 font-bold text-amber-600">${i.repitientes}</td>
+                                        <td class="p-4 font-bold text-red-600">${i.abandonos}</td>
+                                        <td class="p-4 text-center"><button onclick="editItem('eficiencia', ${i.id})" class="text-blue-600 hover:text-blue-800 mr-3" title="Editar"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="deleteItem('eficiencia', ${i.id})" class="text-red-600 hover:text-red-800"><i class="fa-solid fa-trash"></i></button></td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `,
+
+            'connect_canales': () => `
+                <div class="space-y-6 max-w-4xl mx-auto">
+                    <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200">
+                        <h3 class="text-xl font-bold text-blue-950 mb-2"><i class="fa-solid fa-at text-cyan-600 mr-2"></i> Cuentas Oficiales Vinculadas</h3>
+                        <p class="text-xs text-slate-500 mb-6">Estas son tus cuentas oficiales configuradas para enviar reportes institucionales a directores, técnicos y correos personales.</p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                            <div class="p-4 rounded-2xl bg-blue-50 border border-blue-200 flex items-center space-x-4">
+                                <div class="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xl font-bold">
+                                    <i class="fa-solid fa-envelope"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-blue-950 text-sm">Correo Institucional / Docente</h4>
+                                    <p class="text-xs text-blue-700 font-semibold">edwinj.ruiz@docente.edu.do</p>
+                                    <span class="inline-block mt-1 px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-full">Activo para Outlook</span>
+                                </div>
+                            </div>
+                            <div class="p-4 rounded-2xl bg-red-50 border border-red-200 flex items-center space-x-4">
+                                <div class="w-12 h-12 rounded-xl bg-red-600 text-white flex items-center justify-center text-xl font-bold">
+                                    <i class="fa-solid fa-at"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-red-950 text-sm">Correo Personal / Google</h4>
+                                    <p class="text-xs text-red-700 font-semibold">edwinjoseruizcordero1976@gmail.com</p>
+                                    <span class="inline-block mt-1 px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-full">Activo para Gmail</span>
+                                </div>
+                            </div>
+                            <div class="p-4 rounded-2xl bg-green-50 border border-green-200 flex items-center space-x-4">
+                                <div class="w-12 h-12 rounded-xl bg-green-600 text-white flex items-center justify-center text-xl font-bold">
+                                    <i class="fa-brands fa-whatsapp"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-green-950 text-sm">WhatsApp</h4>
+                                    <p class="text-xs text-green-700 font-semibold">Comunicación con directores y técnicos</p>
+                                    <span class="inline-block mt-1 px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-full">Activo para WhatsApp Web</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h4 class="font-bold text-blue-950 text-sm mb-3">Acceso Directo a Bandejas Web</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <a href="https://mail.google.com/" target="_blank" class="p-4 rounded-xl bg-red-50 border border-red-200 hover:bg-red-100 transition flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <i class="fa-brands fa-google text-2xl text-red-600"></i>
+                                    <div>
+                                        <span class="font-bold text-red-900 text-xs block">Abrir Gmail</span>
+                                        <span class="text-[11px] text-red-700">edwinjoseruizcordero1976@gmail.com</span>
+                                    </div>
+                                </div>
+                                <i class="fa-solid fa-external-link-alt text-red-600 text-xs"></i>
+                            </a>
+                            <a href="https://outlook.office.com/mail/?login_hint=edwinj.ruiz@docente.edu.do" target="_blank" rel="noopener noreferrer" class="p-4 rounded-xl bg-blue-50 border border-blue-200 hover:bg-blue-100 transition flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <i class="fa-brands fa-microsoft text-2xl text-blue-600"></i>
+                                    <div>
+                                        <span class="font-bold text-blue-900 text-xs block">Abrir Outlook / MINERD</span>
+                                        <span class="text-[11px] text-blue-700">edwinj.ruiz@docente.edu.do</span>
+                                    </div>
+                                </div>
+                                <i class="fa-solid fa-external-link-alt text-blue-600 text-xs"></i>
+                            </a>
+                            <a href="https://web.whatsapp.com/" onclick="return p360AbrirWhatsApp(event)" target="_blank" rel="noopener noreferrer" class="p-4 rounded-xl bg-green-50 border border-green-200 hover:bg-green-100 transition flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <i class="fa-brands fa-whatsapp text-2xl text-green-600"></i>
+                                    <div>
+                                        <span class="font-bold text-green-900 text-xs block">Abrir WhatsApp</span>
+                                        <span class="text-[11px] text-green-700">Directores y técnicos</span>
+                                    </div>
+                                </div>
+                                <i class="fa-solid fa-external-link-alt text-green-600 text-xs"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `,
+
+            'informes': () => `
+                <div class="space-y-6 max-w-5xl mx-auto">
+                    <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200">
+                        <h3 class="text-lg font-bold text-blue-950 mb-2 flex items-center gap-2"><i class="fa-solid fa-file-arrow-up text-cyan-600"></i> Envío y Subida de Informes</h3>
+                        <p class="text-xs text-slate-500 mb-4">Selecciona tu cuenta oficial (Outlook o Gmail) y el correo del director. El sistema abrirá directamente tu bandeja con el mensaje listo sin descargar ningún archivo.</p>
+                        <form onsubmit="addItem(event, 'informes')" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Título del Informe</label>
+                                <input type="text" id="f_titulo" required placeholder="Ej. Informe de Distrito Regional 15" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha</label>
+                                <input type="date" id="f_fecha" required class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Correo de Destino (Director / Personal)</label>
+                                <input type="email" id="f_correo" required placeholder="director@minerd.gob.do / correo@gmail.com" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Enviar desde mi cuenta oficial:</label>
+                                <select id="f_remitente" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 bg-white outline-none font-semibold text-blue-900">
+                                    <option value="edwinj.ruiz@docente.edu.do">Microsoft / Outlook: edwinj.ruiz@docente.edu.do</option>
+                                    <option value="edwinjoseruizcordero1976@gmail.com">Google / Gmail: edwinjoseruizcordero1976@gmail.com</option>
+                                </select>
+                            </div>
+                            <div class="md:col-span-full">
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Archivo del informe (PDF, Word, imagen…)</label>
+                                <input type="file" id="f_archivoFile" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 bg-slate-50" onchange="document.getElementById('f_archivo').value=this.files[0]?this.files[0].name:''"><input type="hidden" id="f_archivo">
+                            </div>
+                            <div class="md:col-span-full">
+                                <button type="submit" class="w-full bg-cyan-700 hover:bg-cyan-800 text-white text-xs font-semibold py-2.5 rounded-xl transition">Guardar y Habilitar Despacho Oficial</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+                        <div class="p-4 bg-slate-50 border-b border-slate-200 font-bold text-sm text-blue-950">Informes Listos para Enviar</div>
+                        <table class="w-full text-left text-sm">
+                            <thead>
+                                <tr class="bg-blue-950 text-white uppercase text-xs">
+                                    <th class="p-4">Título</th>
+                                    <th class="p-4">Plataforma / Remitente</th>
+                                    <th class="p-4">Destinatario</th>
+                                    <th class="p-4">Archivo</th>
+                                    <th class="p-4 text-center">Acción de Envío</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                ${appData.informes.map(i => {
+                                    const asunto = encodeURIComponent(`Informe Oficial: ${i.titulo} - Regional 15 EPJA`);
+                                    const cuerpo = encodeURIComponent(`Saludos cordiales,\n\nAdjunto y comparto el informe titulado "${i.titulo}" correspondiente a la fecha ${i.fecha}.\n\nAtentamente,\nEdwin José Ruiz Cordero\nTécnico Regional EPJA - Regional 15\nCuenta Oficial: ${i.remitente}`);
+                                    
+                                    const isGmail = i.remitente.includes('gmail.com');
+                                    const webLink = isGmail
+                                        ? `https://mail.google.com/mail/?view=cm&fs=1&to=${i.correo}&su=${asunto}&body=${cuerpo}`
+                                        : `https://outlook.live.com/owa/?path=/mail/action/compose&to=${i.correo}&subject=${asunto}&body=${cuerpo}`;
+
+                                    const plataformaNombre = isGmail ? 'Gmail (Google)' : 'Outlook (Microsoft)';
+
+                                    return `
+                                        <tr class="hover:bg-slate-50">
+                                            <td class="p-4 font-semibold">${i.titulo}</td>
+                                            <td class="p-4 text-xs font-bold ${isGmail ? 'text-red-700' : 'text-blue-700'}">${i.remitente}</td>
+                                            <td class="p-4 text-slate-700">${i.correo}</td>
+                                            <td class="p-4 text-cyan-700 font-medium">${fileCell(i,'informes')}</td>
+                                            <td class="p-4 text-center flex items-center justify-center space-x-2">
+                                                <button onclick="triggerEmailPrep('${i.archivo}', '${webLink}', '${plataformaNombre}')" class="bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1 shadow-xs" title="Enviar informe">
+                                                    <i class="fa-solid fa-paper-plane mr-1"></i> Enviar
+                                                </button>
+                                                <button onclick="editItem('informes', ${i.id})" class="text-blue-600 hover:text-blue-800 mr-3" title="Editar"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="deleteItem('informes', ${i.id})" class="text-red-600 hover:text-red-800" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                                            </td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `,
+
+            'lab_docentes': () => `
+                <div class="space-y-6 max-w-5xl mx-auto">
+                    <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200">
+                        <h3 class="text-lg font-bold text-blue-950 mb-4 flex items-center gap-2"><i class="fa-solid fa-book-open text-amber-600"></i> Planificación, Registros y Descripción de Procesos</h3>
+                        <form onsubmit="addItem(event, 'lab_docentes')" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Nombre del Docente</label><input type="text" id="f_docente" required placeholder="Nombre del Docente" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 outline-none"></div>
+                            <div><label class="block text-xs font-semibold text-slate-600 mb-1">¿El docente planifica?</label>
+                                <select id="f_planifica" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 bg-white outline-none">
+                                    <option value="Sí">Sí</option>
+                                    <option value="No">No</option>
+                                </select>
+                            </div>
+                            <div><label class="block text-xs font-semibold text-slate-600 mb-1">¿Usa instrumentos pedagógicos?</label>
+                                <select id="f_instrumentos" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 bg-white outline-none">
+                                    <option value="Sí">Sí</option>
+                                    <option value="No">No</option>
+                                </select>
+                            </div>
+                            <div><label class="block text-xs font-semibold text-slate-600 mb-1">¿Llena los registros de grado?</label><input type="text" id="f_registros" required placeholder="Ej. Al día / En proceso" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 outline-none"></div>
+                            <div class="md:col-span-full"><label class="block text-xs font-semibold text-slate-600 mb-1">Descripción de los Procesos del Docente</label><textarea id="f_procesos" rows="3" required placeholder="Describa cómo lleva a cabo su planificación y llenado de registro..." class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 outline-none"></textarea></div>
+                            <div class="md:col-span-full"><button type="submit" class="w-full bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold py-2.5 rounded-xl transition">Guardar Evaluación y Procesos</button></div>
+                        </form>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+                        <div class="p-4 bg-slate-50 border-b border-slate-200 font-bold text-sm text-blue-950">Procesos Docentes Registrados</div>
+                        <table class="w-full text-left text-sm">
+                            <thead><tr class="bg-blue-950 text-white uppercase text-xs"><th class="p-4">Docente</th><th class="p-4">Planifica</th><th class="p-4">Instrumentos</th><th class="p-4">Registros</th><th class="p-4">Descripción de Procesos</th><th class="p-4 text-center">Acción</th></tr></thead>
+                            <tbody class="divide-y divide-slate-100">
+                                ${appData.lab_docentes.map(i => `
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="p-4 font-semibold">${i.docente}</td>
+                                        <td class="p-4"><span class="px-2 py-1 bg-emerald-100 text-emerald-800 rounded text-xs font-bold">${i.planifica}</span></td>
+                                        <td class="p-4"><span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-bold">${i.instrumentos}</span></td>
+                                        <td class="p-4">${i.registros}</td>
+                                        <td class="p-4 text-slate-600 text-xs">${i.procesos}</td>
+                                        <td class="p-4 text-center"><button onclick="editItem('lab_docentes', ${i.id})" class="text-blue-600 hover:text-blue-800 mr-3" title="Editar"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="deleteItem('lab_docentes', ${i.id})" class="text-red-600 hover:text-red-800"><i class="fa-solid fa-trash"></i></button></td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `,
+
+            'evaluaciones': () => `
+                <div class="space-y-6 max-w-5xl mx-auto">
+                    <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200">
+                        <h3 class="text-lg font-bold text-blue-950 mb-4 flex items-center gap-2"><i class="fa-solid fa-clipboard-check text-amber-600"></i> Instrumento de Evaluación y Acuerdos / Compromisos</h3>
+                        <form onsubmit="addItem(event, 'evaluaciones')" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Nombre del Docente</label><input type="text" id="f_docente" required placeholder="Docente" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 outline-none"></div>
+                            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Nivel de Cumplimiento (Instrumento)</label>
+                                <select id="f_cumplimiento" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 bg-white outline-none">
+                                    <option value="Cumple a la perfección">Cumple a la perfección</option>
+                                    <option value="Cumple parcialmente">Cumple parcialmente</option>
+                                    <option value="No cumple">No cumple</option>
+                                </select>
+                            </div>
+                            <div class="md:col-span-full"><label class="block text-xs font-semibold text-slate-600 mb-1">Acuerdos y Compromisos Establecidos</label><textarea id="f_acuerdos" rows="3" required placeholder="Especifique los acuerdos y compromisos acordados con el docente..." class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 outline-none"></textarea></div>
+                            <div class="md:col-span-full"><button type="submit" class="w-full bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold py-2.5 rounded-xl transition">Guardar Instrumento y Acuerdos</button></div>
+                        </form>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+                        <div class="p-4 bg-slate-50 border-b border-slate-200 font-bold text-sm text-blue-950">Evaluaciones e Instrumentos Registrados</div>
+                        <table class="w-full text-left text-sm">
+                            <thead><tr class="bg-blue-950 text-white uppercase text-xs"><th class="p-4">Docente</th><th class="p-4">Evaluación de Cumplimiento</th><th class="p-4">Acuerdos y Compromisos</th><th class="p-4 text-center">Acción</th></tr></thead>
+                            <tbody class="divide-y divide-slate-100">
+                                ${appData.evaluaciones.map(i => `
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="p-4 font-semibold">${i.docente}</td>
+                                        <td class="p-4"><span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold">${i.cumplimiento}</span></td>
+                                        <td class="p-4 text-slate-600 text-xs">${i.acuerdos}</td>
+                                        <td class="p-4 text-center"><button onclick="editItem('evaluaciones', ${i.id})" class="text-blue-600 hover:text-blue-800 mr-3" title="Editar"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="deleteItem('evaluaciones', ${i.id})" class="text-red-600 hover:text-red-800"><i class="fa-solid fa-trash"></i></button></td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `,
+
+            'evidencias': () => `
+                <div class="space-y-6 max-w-5xl mx-auto">
+                    <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200">
+                        <h3 class="text-lg font-bold text-blue-950 mb-4 flex items-center gap-2"><i class="fa-solid fa-upload text-amber-600"></i> Registrar Evidencia (con documento)</h3>
+                        <form onsubmit="addItem(event, 'evidencias')" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Nombre del Docente</label><input type="text" id="f_docente" required placeholder="Docente" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 outline-none"></div>
+                            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Título de la Buena Práctica</label><input type="text" id="f_titulo" required placeholder="Título" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 outline-none"></div>
+                            <div class="md:col-span-full"><label class="block text-xs font-semibold text-slate-600 mb-1">Documento de la evidencia (PDF, Word, foto, video…)</label><input type="file" id="f_archivoFile" class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 bg-slate-50" onchange="document.getElementById('f_archivo').value=this.files[0]?this.files[0].name:''"><input type="hidden" id="f_archivo"></div>
+                            <div class="md:col-span-full"><button type="submit" class="w-full bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold py-2.5 rounded-xl transition">Registrar Evidencia</button></div>
+                        </form>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+                        <div class="p-4 bg-slate-50 border-b border-slate-200 font-bold text-sm text-blue-950">Evidencias Almacenadas</div>
+                        <table class="w-full text-left text-sm">
+                            <thead><tr class="bg-blue-950 text-white uppercase text-xs"><th class="p-4">Docente</th><th class="p-4">Título de la Buena Práctica</th><th class="p-4">Archivo</th><th class="p-4 text-center">Acción</th></tr></thead>
+                            <tbody class="divide-y divide-slate-100">
+                                ${appData.evidencias.map(i => `
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="p-4 font-semibold">${i.docente}</td>
+                                        <td class="p-4">${i.titulo}</td>
+                                        <td class="p-4 text-amber-700 font-medium">${fileCell(i,'evidencias')}</td>
+                                        <td class="p-4 text-center"><button onclick="editItem('evidencias', ${i.id})" class="text-blue-600 hover:text-blue-800 mr-3" title="Editar"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="deleteItem('evidencias', ${i.id})" class="text-red-600 hover:text-red-800"><i class="fa-solid fa-trash"></i></button></td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `
+        };
+
+        function switchModule(modId) {
+            editing = null; curMod = modId;
+            document.getElementById('main-viewport').innerHTML = views[modId] ? views[modId]() : '<p>Módulo no encontrado</p>';
+            document.querySelectorAll('.mod-btn').forEach(btn => {
+                if (btn.getAttribute('data-module') === modId) {
+                    btn.className = "mod-btn w-full flex items-center space-x-3.5 px-4 py-3.5 rounded-2xl font-bold text-white bg-blue-700 shadow-md transition-all text-left text-sm";
+                } else {
+                    btn.className = "mod-btn w-full flex items-center space-x-3.5 px-4 py-3.5 rounded-2xl font-bold text-blue-100 hover:bg-blue-900/60 hover:text-white transition-all text-left text-sm";
+                }
+            });
+            document.getElementById('topbar-title').innerText = document.querySelector(`[data-module="${modId}"] span`)?.innerText || 'PREPARA LA VISIÓN';
+        }
+
+        function triggerEmailPrep(fileName, webLink, platformName) {
+            pendingFileName = fileName;
+            pendingEmailAction = webLink;
+            
+            document.getElementById('modalFileName').innerText = fileName;
+            document.getElementById('modalPlatform').innerText = platformName;
+            document.getElementById('attachmentModal').classList.remove('hidden');
+        }
+
+        function proceedToEmail() {
+            document.getElementById('attachmentModal').classList.add('hidden');
+            if (pendingEmailAction) {
+                window.open(pendingEmailAction, '_blank');
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('attachmentModal').classList.add('hidden');
+        }
+
+        /* ===== Edición, archivos y nube ===== */
+        const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+        function toast(m) { const b = document.getElementById('toastBox'); b.textContent = m; b.classList.remove('hidden'); clearTimeout(b._t); b._t = setTimeout(() => b.classList.add('hidden'), 3500); }
+        const idb = () => new Promise((ok, no) => { const q = indexedDB.open('p360_vision_files', 1); q.onupgradeneeded = () => q.result.createObjectStore('f'); q.onsuccess = () => ok(q.result); q.onerror = () => no(q.error); });
+        const fop = async (mode, fn) => { const d = await idb(); return new Promise((ok, no) => { const t = d.transaction('f', mode); const r = fn(t.objectStore('f')); t.oncomplete = () => ok(r && r.result); t.onerror = () => no(t.error); }); };
+        const fput = (k, b) => fop('readwrite', s => s.put(b, k)), fget = k => fop('readonly', s => s.get(k)), fdel = k => fop('readwrite', s => s.delete(k));
+
+        const CK = 'pv_cloud_cfg', KEY = 'prepara_vision_v3';
+        const cfg = () => { try { return JSON.parse(localStorage.getItem(CK)) || {}; } catch (e) { return {}; } };
+        const cOn = () => { const c = cfg(); return !!(c.url && c.key); };
+        const bkt = () => cfg().bucket || 'evidencias';
+        const H = (x = {}) => ({ apikey: cfg().key, Authorization: 'Bearer ' + cfg().key, ...x });
+        function badge(st, msg) {
+            const b = document.getElementById('cloudBadge'); if (!b) return;
+            const m = { local: ['bg-amber-50 text-amber-700 border-amber-200', 'fa-cloud-arrow-up', 'Solo en este equipo • Conectar nube'],
+                sync: ['bg-blue-50 text-blue-700 border-blue-200', 'fa-spinner fa-spin', 'Sincronizando…'],
+                ok: ['bg-emerald-50 text-emerald-700 border-emerald-200', 'fa-cloud-check', 'Guardado en la nube'],
+                err: ['bg-red-50 text-red-700 border-red-200', 'fa-triangle-exclamation', 'Error de nube (clic para ver)'] }[st];
+            b.className = 'inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold border ' + m[0];
+            b.innerHTML = '<i class="fa-solid ' + m[1] + ' mr-2"></i>' + m[2]; b.title = msg || '';
+            if (st === 'err') toast('Nube: ' + (msg || 'error').slice(0, 140));
+        }
+        let pt; function cloudPushSoon() { if (!cOn()) return badge('local'); badge('sync'); clearTimeout(pt); pt = setTimeout(cloudPush, 700); }
+        async function cloudPush() {
+            if (!cOn()) return badge('local'); badge('sync');
+            try {
+                const r = await fetch(cfg().url + '/rest/v1/p360_store?on_conflict=key', { method: 'POST', headers: H({ 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' }),
+                    body: JSON.stringify({ key: KEY, value: appData, updated_at: localStorage.getItem('pv_local_at') || new Date().toISOString() }) });
+                if (!r.ok) throw new Error(await r.text()); badge('ok');
+            } catch (e) { badge('err', e.message); }
+        }
+        async function cloudPull(force) {
+            if (!cOn()) return badge('local'); badge('sync');
+            try {
+                const r = await fetch(cfg().url + '/rest/v1/p360_store?key=eq.' + KEY + '&select=value,updated_at', { headers: H() });
+                if (!r.ok) throw new Error(await r.text());
+                const row = (await r.json())[0];
+                if (!row) return cloudPush();
+                const cl = Date.parse(row.updated_at) || 0, lo = Date.parse(localStorage.getItem('pv_local_at')) || 0;
+                if (force || cl > lo) {
+                    appData = { ...defaultData, ...row.value };
+                    localStorage.setItem(KEY, JSON.stringify(appData)); localStorage.setItem('pv_local_at', row.updated_at);
+                    switchModule(curMod); toast('Datos traídos de la nube');
+                } else if (lo > cl) return cloudPush();
+                badge('ok');
+            } catch (e) { badge('err', e.message); }
+        }
+        async function upFile(it, file) {
+            const path = it.fileId + '-' + file.name.replace(/[^\w.\-]/g, '_');
+            const r = await fetch(`${cfg().url}/storage/v1/object/${bkt()}/${path}`, { method: 'POST', headers: H({ 'x-upsert': 'true', 'Content-Type': file.type || 'application/octet-stream' }), body: file });
+            if (!r.ok) throw new Error(await r.text());
+            it.nubePath = path; it.nubeUrl = `${cfg().url}/storage/v1/object/public/${bkt()}/${path}`;
+        }
+        async function dropFile(it) {
+            if (it.fileId) { try { await fdel(it.fileId); } catch (e) {} }
+            if (it.nubePath && cOn()) { try { await fetch(`${cfg().url}/storage/v1/object/${bkt()}/${it.nubePath}`, { method: 'DELETE', headers: H() }); } catch (e) {} }
+        }
+        async function cloudAll() {
+            if (!cOn()) return toast('Primero conecta la nube'); badge('sync');
+            for (const k of ['evidencias', 'informes']) for (const it of appData[k]) {
+                if (it.fileId && !it.nubeUrl) { const b = await fget(it.fileId); if (b) { try { await upFile(it, new File([b], it.archivo, { type: b.type })); } catch (e) { return badge('err', e.message); } } }
+            }
+            localStorage.setItem(KEY, JSON.stringify(appData)); localStorage.setItem('pv_local_at', new Date().toISOString());
+            await cloudPush(); switchModule(curMod);
+        }
+        function fileCell(it, key) {
+            if (!it.archivo) return '<span class="text-slate-400">—</span>';
+            const has = it.fileId || it.nubeUrl;
+            return `<i class="fa-solid fa-file mr-1"></i>${esc(it.archivo)}` + (has ? ` <button onclick="openFile('${key}', ${it.id})" class="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-lg font-semibold" title="Abrir o descargar"><i class="fa-solid fa-download"></i></button>` : '')
+                + (it.nubeUrl ? ' <i class="fa-solid fa-cloud text-emerald-600 text-xs" title="Guardado en la nube"></i>' : (it.fileId ? ' <i class="fa-solid fa-cloud-arrow-up text-amber-500 text-xs" title="Solo en este equipo"></i>' : ''));
+        }
+        async function openFile(key, id) {
+            const it = appData[key].find(x => x.id === id); if (!it) return;
+            const b = it.fileId ? await fget(it.fileId) : null;
+            if (b) { const u = URL.createObjectURL(b), a = document.createElement('a'); a.href = u; a.download = it.archivo; a.click(); setTimeout(() => URL.revokeObjectURL(u), 30000); }
+            else if (it.nubeUrl) window.open(it.nubeUrl, '_blank');
+            else toast('El archivo no está disponible.');
+        }
+        function openCloud() {
+            const c = cfg();
+            document.getElementById('cl_url').value = c.url || ''; document.getElementById('cl_key').value = c.key || ''; document.getElementById('cl_bucket').value = c.bucket || 'evidencias';
+            document.getElementById('cl_sql').value = `create table if not exists public.p360_store (key text primary key, value jsonb not null, updated_at timestamptz default now());
+alter table public.p360_store enable row level security;
+create policy "p360 datos" on public.p360_store for all to anon using (true) with check (true);
+insert into storage.buckets (id, name, public) values ('evidencias','evidencias',true) on conflict (id) do nothing;
+create policy "p360 archivos" on storage.objects for all to anon using (bucket_id = 'evidencias') with check (bucket_id = 'evidencias');`;
+            document.getElementById('cloudModal').classList.remove('hidden');
+        }
+        async function saveCloud() {
+            const url = document.getElementById('cl_url').value.trim().replace(/\/+$/, ''), key = document.getElementById('cl_key').value.trim(), bucket = document.getElementById('cl_bucket').value.trim() || 'evidencias';
+            if (!url || !key) return toast('Escribe la URL y la clave');
+            localStorage.setItem(CK, JSON.stringify({ url, key, bucket }));
+            await cloudAll(); if (document.getElementById('cloudBadge').title === '') toast('Nube conectada');
+        }
+        function discCloud() { localStorage.removeItem(CK); badge('local'); toast('Nube desconectada (tus datos locales se conservan)'); }
+        function exportJSON() { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(appData, null, 2)], { type: 'application/json' })); a.download = 'prepara_la_vision_respaldo.json'; a.click(); }
+
+        function editItem(key, id) {
+            const it = appData[key].find(x => x.id === id); if (!it) return;
+            switchModule(key);
+            const form = document.querySelector('#main-viewport form');
+            form.querySelectorAll('input,select,textarea').forEach(inp => { if (inp.type !== 'file' && it[inp.id.replace('f_', '')] !== undefined) inp.value = it[inp.id.replace('f_', '')]; });
+            editing = { key, id };
+            form.insertAdjacentHTML('afterbegin', '<div class="md:col-span-full bg-amber-50 border border-amber-300 text-amber-800 text-xs font-semibold rounded-xl px-3 py-2"><i class="fa-solid fa-pen-to-square mr-1"></i> Editando un registro: cambia lo que necesites y pulsa «Guardar cambios».</div>');
+            const fi = form.querySelector('input[type=file]'); if (fi && it.archivo) fi.insertAdjacentHTML('afterend', `<p class="text-[11px] text-slate-500 mt-1">Archivo actual: ${esc(it.archivo)}. Déjalo vacío para conservarlo o elige otro para reemplazarlo.</p>`);
+            const b = form.querySelector('button[type=submit]'); b.innerHTML = '<i class="fa-solid fa-floppy-disk mr-1"></i> Guardar cambios (actualizar)';
+            b.parentElement.insertAdjacentHTML('beforeend', `<button type="button" onclick="switchModule('${key}')" class="w-full mt-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold py-2.5 rounded-xl">Cancelar edición</button>`);
+            form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        async function addItem(e, key) {
+            e.preventDefault();
+            const form = e.target, ed = (editing && editing.key === key) ? editing : null;
+            const old = ed ? appData[key].find(x => x.id === ed.id) : null;
+            const item = old ? { ...old } : { id: Date.now() };
+            form.querySelectorAll('input,select,textarea').forEach(inp => { if (inp.type !== 'file') item[inp.id.replace('f_', '')] = inp.value; });
+            const fi = form.querySelector('input[type=file]'), file = fi && fi.files[0];
+            if (fi && !file && !ed) return toast('Selecciona el documento que vas a subir.');
+            if (file && file.size > 50 * 1024 * 1024) return toast('El archivo supera 50 MB.');
+            if (file) {
+                if (old) await dropFile(old);
+                item.archivo = file.name; item.fileId = item.id + '_' + Date.now(); item.fileSize = file.size; item.nubeUrl = ''; item.nubePath = '';
+                await fput(item.fileId, file);
+                if (cOn()) { badge('sync'); toast('Subiendo archivo a la nube…'); try { await upFile(item, file); } catch (er) { badge('err', er.message); } }
+            }
+            if (ed) appData[key] = appData[key].map(x => x.id === ed.id ? item : x); else appData[key].push(item);
+            saveData(); switchModule(key); toast(ed ? 'Registro actualizado' : 'Registro guardado');
+        }
+
+        async function deleteItem(category, id) {
+            if (confirm("¿Estás seguro de eliminar este registro?")) {
+                const it = appData[category].find(x => x.id === id);
+                if (it) await dropFile(it);
+                appData[category] = appData[category].filter(item => item.id !== id);
+                saveData(); switchModule(category);
+            }
+        }
+
+        window.onload = () => {
+            switchModule('dashboard');
+            if (cOn()) cloudPull(); else badge('local');
+        };
+    </script>
+<script id="p360-whatsapp-directo">
+/* WhatsApp directo: abre la app de WhatsApp (celular o WhatsApp de escritorio) y, si no está instalada, WhatsApp Web.
+   Para abrir un chat concreto escribe tu número con código de país, sin + ni espacios (ej.: '18095551234'). Déjalo vacío para abrir WhatsApp a secas. */
+var P360_WHATSAPP_NUMERO = '';
+function p360AbrirWhatsApp(ev){
+  if(ev) ev.preventDefault();
+  var n = String(P360_WHATSAPP_NUMERO||'').replace(/\D/g,'');
+  var appUrl = n ? 'whatsapp://send?phone='+n : 'whatsapp://send';
+  var webUrl = n ? 'https://wa.me/'+n : 'https://web.whatsapp.com/';
+  var abierto = false;
+  var marcar = function(){ abierto = true; };
+  window.addEventListener('blur', marcar, {once:true});
+  document.addEventListener('visibilitychange', function(){ if(document.hidden) abierto = true; }, {once:true});
+  var f = document.createElement('iframe'); f.style.display='none'; f.src = appUrl; document.body.appendChild(f);
+  setTimeout(function(){ try{ f.remove(); }catch(e){} window.removeEventListener('blur', marcar); if(!abierto) window.open(webUrl,'_blank','noopener'); }, 1500);
+  return false;
+}
+</script>
+</body>
+</html>
